@@ -101,7 +101,7 @@ public class CustomerProductReviewController extends AbstractController {
         ReadableProduct readableProduct = new ReadableProduct();
         ReadableProductPopulator readableProductPopulator = new ReadableProductPopulator();
         readableProductPopulator.setPricingService(pricingService);
-        readableProductPopulator.setimageUtils(imageUtils);
+        readableProductPopulator.setImageUtils(imageUtils);
         readableProductPopulator.populate(product, readableProduct,  store, language);
         model.addAttribute("product", readableProduct);
         
@@ -172,7 +172,7 @@ public class CustomerProductReviewController extends AbstractController {
         ReadableProduct readableProduct = new ReadableProduct();
         ReadableProductPopulator readableProductPopulator = new ReadableProductPopulator();
         readableProductPopulator.setPricingService(pricingService);
-        readableProductPopulator.setimageUtils(imageUtils);
+        readableProductPopulator.setImageUtils(imageUtils);
         readableProductPopulator.populate(product, readableProduct,  store, language);
         model.addAttribute("product", readableProduct);
 	    

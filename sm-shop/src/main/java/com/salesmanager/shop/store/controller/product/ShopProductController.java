@@ -140,7 +140,7 @@ public class ShopProductController {
 		
 		ReadableProductPopulator populator = new ReadableProductPopulator();
 		populator.setPricingService(pricingService);
-		populator.setimageUtils(imageUtils);
+		populator.setImageUtils(imageUtils);
 		
 		ReadableProduct productProxy = populator.populate(product, new ReadableProduct(), store, language);
 
@@ -377,7 +377,7 @@ public class ShopProductController {
 		
 		ReadableProductPopulator populator = new ReadableProductPopulator();
 		populator.setPricingService(pricingService);
-		populator.setimageUtils(imageUtils);
+		populator.setImageUtils(imageUtils);
 		
 		List<ProductRelationship> relatedItems = productRelationshipService.getByType(store, product, ProductRelationshipType.RELATED_ITEM);
 		if(relatedItems!=null && relatedItems.size()>0) {

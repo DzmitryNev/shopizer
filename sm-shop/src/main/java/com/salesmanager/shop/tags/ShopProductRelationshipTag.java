@@ -142,7 +142,7 @@ public class ShopProductRelationshipTag extends RequestContextAwareTag  {
 		
 		ReadableProductPopulator populator = new ReadableProductPopulator();
 		populator.setPricingService(pricingService);
-		populator.setimageUtils(imageUtils);
+		populator.setImageUtils(imageUtils);
 		
 		List<ReadableProduct> products = new ArrayList<ReadableProduct>();
 		for(ProductRelationship relationship : relationships) {
