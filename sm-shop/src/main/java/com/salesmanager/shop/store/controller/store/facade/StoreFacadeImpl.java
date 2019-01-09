@@ -3,6 +3,9 @@ package com.salesmanager.shop.store.controller.store.facade;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 
+import java.util.Optional;
+
+import com.salemanager.shop.exception.ResourceNotFoundException;
 import org.apache.commons.lang.Validate;
 import org.drools.core.util.StringUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -55,29 +58,28 @@ public class StoreFacadeImpl implements StoreFacade {
 
 	@Override
 	public MerchantStore get(String code) throws Exception {
-		return merchantStoreService.getByCode(code);
+		return Optional.ofNullable(merchantStoreService.getByCode(code))
+				.orElseThrow(() -> new ResourceNotFoundException("MerchanStore not found for merchant store [" + code + "]"));
 	}
 
 	@Override
 	public ReadableMerchantStore getByCode(String code, Language language) throws Exception {
 		
 		MerchantStore store = get(code);
-		if(store == null) {
-			return null;
-		}
+
+        ReadableMerchantStore readable = new ReadableMerchantStore();
+
 		ReadableMerchantStorePopulator populator = new ReadableMerchantStorePopulator();
-		
-		ReadableMerchantStore readable = new ReadableMerchantStore();
-		
 		populator.setCountryService(countryService);
 		populator.setZoneService(zoneService);
 		populator.setFilePath(imageUtils);
-		
+
 		/**
 		 * Language is not important for this conversion
 		 * using default language
 		 */
 		readable = populator.populate(store, readable, store, language);
+
 		return readable;
 	}
 

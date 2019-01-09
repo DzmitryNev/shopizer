@@ -44,7 +44,7 @@ public class UserApi {
                             HttpServletRequest request) {
 
 		try {
-			MerchantStore merchantStore = storeFacade.getByCode(storeCode);
+			MerchantStore merchantStore = storeFacade.get(storeCode);
 			Language language = languageUtils.getRESTLanguage(request, merchantStore);
 
 			ReadableUser user = userFacade.findByUserName(userName, language);

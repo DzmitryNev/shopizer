@@ -7,11 +7,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,36 +33,34 @@ import com.salesmanager.shop.store.controller.user.facade.UserFacade;
 import com.salesmanager.shop.utils.LanguageUtils;
 
 import io.swagger.annotations.ApiOperation;
+import org.springframework.web.bind.annotation.RestController;
 
-@Controller
+@Slf4j
+@RestController
 @RequestMapping("/api/v1")
 public class MerchantStoreApi {
-	
 
-	
 	@Inject
 	private StoreFacade storeFacade;
 	
 	@Inject
 	private LanguageUtils languageUtils;
 	
-	@Inject LanguageService languageService;
+	@Inject
+    private LanguageService languageService;
 	
-	@Inject UserFacade userFacade;
-	
-	private static final Logger LOGGER = LoggerFactory.getLogger(MerchantStoreApi.class);
-	
-    @ResponseStatus(HttpStatus.OK)
-	@RequestMapping( value={"/store/{store}"}, method=RequestMethod.GET)
+	@Inject
+    private UserFacade userFacade;
+
+	@GetMapping("/store/{store}")
     @ApiOperation(httpMethod = "GET", value = "Get merchant store", notes = "", produces = "application/json", response = ReadableMerchantStore.class)
-    public @ResponseBody ReadableMerchantStore store(@PathVariable String store, @RequestParam(value = "lang", required=false) String lang, HttpServletRequest request, HttpServletResponse response) throws Exception {
+    public ReadableMerchantStore store(@PathVariable String store,
+                                       @RequestParam(value = "lang", required=false) String lang,
+                                       HttpServletRequest request,
+                                       HttpServletResponse response) throws Exception {
     	
-    	Language l = languageUtils.getServiceLanguage(lang);
-    	
-    	
-    	
-    	ReadableMerchantStore readableStore = storeFacade.getByCode(store, l);
-    	
+    	Language language = languageUtils.getServiceLanguage(lang);
+    	ReadableMerchantStore readableStore = storeFacade.getByCode(store, language);
 		if(readableStore==null) {
 			response.sendError(404,  "MerchanStore not found for merchant store [" + store + "]");
 			return null;
@@ -105,8 +105,6 @@ public class MerchantStoreApi {
 	@RequestMapping( value={"/private/store/{code}"}, method=RequestMethod.PUT)
     @ApiOperation(httpMethod = "PUT", value = "Updates a store", notes = "", produces = "application/json", response = ReadableMerchantStore.class)
     public ResponseEntity<ReadableMerchantStore> update(@Valid @RequestBody PersistableMerchantStore store, HttpServletRequest request, HttpServletResponse response) throws Exception {
-
-
 
     	try {
     		
