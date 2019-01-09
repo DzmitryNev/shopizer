@@ -2,9 +2,14 @@ package com.salesmanager.shop.store.controller.user.facade;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import com.salemanager.shop.exception.ResourceNotFoundException;
+import com.salesmanager.core.business.exception.ConversionException;
+import com.salesmanager.core.model.user.Group;
 import org.springframework.stereotype.Service;
 
 import com.salesmanager.core.business.services.reference.language.LanguageService;
@@ -21,8 +26,7 @@ import com.salesmanager.shop.populator.user.ReadableUserPopulator;
 
 @Service("userFacade")
 public class UserFacadeImpl implements UserFacade {
-	
-	
+
 	@Inject
 	private UserService userService;
 
@@ -34,21 +38,33 @@ public class UserFacadeImpl implements UserFacade {
 	
 	@Override
 	public ReadableUser findByUserName(String userName, Language lang) throws Exception {
-		
-		User user = userService.getByUserName(userName);
-		if(user == null) {
-			return null;
-		}
-		
-		ReadableUser readableUser = new ReadableUser();
-		
-		ReadableUserPopulator populator = new ReadableUserPopulator();
-		populator.populate(user, readableUser, user.getMerchantStore(), lang);
-		
+
+        User user = Optional.ofNullable(userService.getByUserName(userName))
+                .orElseThrow(() -> new ResourceNotFoundException("No User found for name : " + userName));
+
+        ReadableUser readableUser = createReadableUser(lang, user);
+
+        List<Integer> userIds = user.getGroups()
+                .stream()
+                .map(Group::getId)
+                .collect(Collectors.toList());
+
+        // Add permissions on top of the groups
+        List<ReadablePermission> permissions = findPermissionsByGroups(userIds);
+        readableUser.setPermissions(permissions);
+
 		return readableUser;
 	}
 
-	@Override
+    private ReadableUser createReadableUser(Language lang, User user) throws ConversionException {
+        ReadableUser readableUser = new ReadableUser();
+
+        ReadableUserPopulator populator = new ReadableUserPopulator();
+        populator.populate(user, readableUser, user.getMerchantStore(), lang);
+        return readableUser;
+    }
+
+    @Override
 	public List<ReadablePermission> findPermissionsByGroups(List<Integer> ids) throws Exception {
 		
 

@@ -1,42 +1,33 @@
 package com.salesmanager.shop.store.api.v1.user;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
 import com.salesmanager.core.model.merchant.MerchantStore;
 import com.salesmanager.core.model.reference.language.Language;
-import com.salesmanager.shop.model.security.ReadableGroup;
-import com.salesmanager.shop.model.security.ReadablePermission;
 import com.salesmanager.shop.model.user.ReadableUser;
+import com.salesmanager.shop.store.api.exception.RestApiException;
 import com.salesmanager.shop.store.controller.store.facade.StoreFacade;
 import com.salesmanager.shop.store.controller.user.facade.UserFacade;
 import com.salesmanager.shop.utils.LanguageUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
+import static com.salesmanager.core.business.constants.Constants.DEFAULT_STORE;
 
 /**
  * Api for managing admin users
  * @author carlsamson
  *
  */
-@Controller
+@Slf4j
+@RestController
 @RequestMapping("/api/v1")
 public class UserApi {
-	
-	private static final Logger LOGGER = LoggerFactory.getLogger(UserApi.class);
 	
 	@Inject
 	private StoreFacade storeFacade;
@@ -46,48 +37,21 @@ public class UserApi {
 	
 	@Inject
 	private LanguageUtils languageUtils;
-	
-	@RequestMapping( value="/private/users/{name}", method=RequestMethod.GET)
-	@ResponseStatus(HttpStatus.OK)
-	@ResponseBody
-	public ReadableUser get(@PathVariable String name, HttpServletRequest request, HttpServletResponse response) throws Exception {
-		
-		
+
+	@GetMapping("/private/users/{name}")
+	public ReadableUser get(@PathVariable(name = "name") String userName,
+                            @RequestParam(name = "store", defaultValue = DEFAULT_STORE) String storeCode,
+                            HttpServletRequest request) {
+
 		try {
-			
-			MerchantStore merchantStore = storeFacade.getByCode(request);
+			MerchantStore merchantStore = storeFacade.getByCode(storeCode);
 			Language language = languageUtils.getRESTLanguage(request, merchantStore);
 
-			ReadableUser user = userFacade.findByUserName(name, language);
-			
-			if(user == null){
-				response.sendError(404, "No User found for name : " + name);
-			}
-			
-			/**
-			 * Add permissions on top of the groups
-			 */
-			
-			List<ReadableGroup> groups = user.getGroups();
-			List<Integer> ids = new ArrayList<Integer>();
-			for(ReadableGroup g : groups) {
-				ids.add(g.getId().intValue());
-			}
-			
-	    	List<ReadablePermission> permissions = userFacade.findPermissionsByGroups(ids);
-	    	user.setPermissions(permissions);
-			
+			ReadableUser user = userFacade.findByUserName(userName, language);
 			return user;
 		} catch (Exception e) {
-			LOGGER.error("Error while getting user",e);
-			try {
-				response.sendError(503, "Error while getting user " + e.getMessage());
-			} catch (Exception ignore) {
-			}
+		    throw new RestApiException("Error while getting user " + e.getMessage());
 		}
-		
-		return null;
-		
 	}
 
 }
