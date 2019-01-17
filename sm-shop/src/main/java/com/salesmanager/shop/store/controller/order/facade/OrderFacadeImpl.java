@@ -1,5 +1,6 @@
 package com.salesmanager.shop.store.controller.order.facade;
 
+import com.salesmanager.shop.store.api.exception.ResourceNotFoundException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -1066,12 +1067,8 @@ public class OrderFacadeImpl implements OrderFacade {
 		
 		Long customerId = modelOrder.getCustomerId();
 		if(customerId != null) {
-			ReadableCustomer readableCustomer = customerFacade.getCustomerById(customerId, store, language);
-			if(readableCustomer==null) {
-				LOGGER.warn("Customer id " + customerId + " not found in order " + orderId);
-			} else {
-				readableOrder.setCustomer(readableCustomer);
-			}
+      ReadableCustomer readableCustomer = getReadableCustomer(store, language, customerId, orderId);
+      readableOrder.setCustomer(readableCustomer);
 		}
 		
 		ReadableOrderPopulator orderPopulator = new ReadableOrderPopulator();
@@ -1095,8 +1092,19 @@ public class OrderFacadeImpl implements OrderFacade {
 		return readableOrder;
 	}
 
+  private ReadableCustomer getReadableCustomer(
+      MerchantStore store, Language language, Long customerId, Long orderId) {
+    ReadableCustomer readableCustomer;
+    try {
+      readableCustomer = customerFacade.getCustomerById(customerId, store, language);
+    } catch (ResourceNotFoundException e) {
+      LOGGER.warn("Customer id " + customerId + " not found in order " + orderId);
+      readableCustomer = null;
+    }
+    return readableCustomer;
+  }
 
-	@Override
+  @Override
 	public ShippingQuote getShippingQuote(Customer customer, ShoppingCart cart, MerchantStore store, Language language)
 			throws Exception {
 		

@@ -1,6 +1,6 @@
 package com.salesmanager.shop.store.api.exception;
 
-public class UnauthorizedException extends ServiceRuntimeException {
+public class UnauthorizedException extends GenericRuntimeException {
 
   private final static String ERROR_CODE = "401";
     /**

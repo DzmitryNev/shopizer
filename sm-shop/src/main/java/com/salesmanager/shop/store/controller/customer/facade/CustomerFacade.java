@@ -3,6 +3,9 @@
  */
 package com.salesmanager.shop.store.controller.customer.facade;
 
+import com.salesmanager.core.model.customer.CustomerCriteria;
+import com.salesmanager.core.model.customer.CustomerList;
+import com.salesmanager.shop.populator.customer.ReadableCustomerList;
 import java.util.List;
 
 import com.salesmanager.core.business.services.customer.CustomerService;
@@ -52,7 +55,7 @@ public interface CustomerFacade
      * @param language
      * @return
      */
-    public ReadableCustomer getCustomerById(final Long id, final MerchantStore merchantStore, final Language language) throws Exception;
+    public ReadableCustomer getCustomerById(final Long id, final MerchantStore merchantStore, final Language language);
     
     /**
      * Get Customer using unique username
@@ -62,8 +65,7 @@ public interface CustomerFacade
      * @return
      * @throws Exception
      */
-    ReadableCustomer getByUserName(final String userName, final MerchantStore merchantStore,
-        final Language language) throws Exception;
+    ReadableCustomer getByUserName(String userName, MerchantStore merchantStore, Language language);
     /**
      * <p>Method responsible for merging cart during authentication, 
      *     Method will perform following operations
@@ -77,8 +79,8 @@ public interface CustomerFacade
      */
     public ShoppingCart mergeCart(final Customer customer,final String sessionShoppingCartId,final MerchantStore store,final Language language) throws Exception;
     
-    public Customer getCustomerByUserName(final String userName, final MerchantStore store) throws Exception;
-    
+    Customer getCustomerByUserName(final String userName, final MerchantStore store);
+
     public boolean checkIfUserExists(final String userName,final MerchantStore store) throws Exception;
     
     public PersistableCustomer  registerCustomer( final PersistableCustomer customer,final MerchantStore merchantStore, final Language language) throws Exception;
@@ -102,7 +104,7 @@ public interface CustomerFacade
 	/*
 	 * Creates a Customer from a PersistableCustomer received from REST API
 	 */
-	void create(PersistableCustomer customer, MerchantStore store) throws Exception;
+  PersistableCustomer create(PersistableCustomer customer, MerchantStore store);
 	
 	/**
 	 * Reset customer password
@@ -119,8 +121,8 @@ public interface CustomerFacade
 	 * @param store
 	 * @throws Exception
 	 */
-	void update(PersistableCustomer customer, MerchantStore store) throws Exception;
-	
+	PersistableCustomer update(PersistableCustomer customer, MerchantStore store);
+
 	/**
 	 * Save or update a CustomerReview
 	 * @param review
@@ -154,5 +156,11 @@ public interface CustomerFacade
 	 * @throws Exception
 	 */
 	void optinCustomer(PersistableCustomerOptin optin, MerchantStore store) throws Exception;
+
+	void deleteByNick(String nick);
+
+  ReadableCustomerList listByStore(MerchantStore store, Language language, Integer start, Integer count);
+
+  ReadableCustomer getCustomerByUserName(final String userName, final MerchantStore store, Language language);
 
 }

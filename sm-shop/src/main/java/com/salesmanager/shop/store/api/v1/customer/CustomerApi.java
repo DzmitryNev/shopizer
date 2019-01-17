@@ -1,8 +1,13 @@
 package com.salesmanager.shop.store.api.v1.customer;
 
+import static com.salesmanager.core.business.constants.Constants.DEFAULT_STORE;
+
+import com.salesmanager.shop.store.api.exception.ResourceNotFoundException;
+import com.salesmanager.shop.store.api.exception.UnauthorizedException;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -12,7 +17,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -33,18 +42,14 @@ import com.salesmanager.shop.store.controller.customer.facade.CustomerFacade;
 import com.salesmanager.shop.store.controller.store.facade.StoreFacade;
 import com.salesmanager.shop.utils.LanguageUtils;
 import io.swagger.annotations.ApiOperation;
+import org.springframework.web.bind.annotation.RestController;
 
-@Controller
+@RestController
 @RequestMapping("/api/v1")
 public class CustomerApi {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(CustomerApi.class);
-
   @Inject
   private CustomerFacade customerFacade;
-
-  @Inject
-  private CustomerService customerService;
 
   @Inject
   private StoreFacade storeFacade;
@@ -52,97 +57,54 @@ public class CustomerApi {
   @Inject
   private LanguageUtils languageUtils;
 
-  /**
-   * Create new customer for a given MerchantStore
-   */
-  @RequestMapping(value = {"/private/customers"}, method = RequestMethod.POST)
-  @ResponseStatus(HttpStatus.OK)
-  @ApiOperation(httpMethod = "POST", value = "Creates a customer",
-      notes = "Requires administration access", produces = "application/json",
+  /** Create new customer for a given MerchantStore */
+  @PostMapping("/private/customers")
+  @ApiOperation(
+      httpMethod = "POST",
+      value = "Creates a customer",
+      notes = "Requires administration access",
+      produces = "application/json",
       response = PersistableCustomer.class)
-  @ResponseBody
-  public PersistableCustomer create(@Valid @RequestBody PersistableCustomer customer,
-      HttpServletRequest request, HttpServletResponse response) throws Exception {
+  public PersistableCustomer create(
+      @Valid PersistableCustomer customer,
+      @RequestParam(name = "store", defaultValue = DEFAULT_STORE) String storeCode) {
 
-    try {
-
-      MerchantStore merchantStore = storeFacade.getByCode(request);
-
-      customerFacade.create(customer, merchantStore);
-
-      customer.setEncodedPassword(null);
-      customer.setClearPassword(null);
-
-      return customer;
-
-    } catch (Exception e) {
-      LOGGER.error("Error while saving customer", e);
-      try {
-        response.sendError(503, "Error while saving customer " + e.getMessage());
-      } catch (Exception ignore) {
-      }
-
-      return null;
-    }
-
+    MerchantStore merchantStore = storeFacade.get(storeCode);
+    return customerFacade.create(customer, merchantStore);
   }
 
-  @ResponseStatus(HttpStatus.OK)
-  @RequestMapping(value = "/private/customers/{username}", method = RequestMethod.PUT)
-  @ApiOperation(httpMethod = "PUT", value = "Updates a customer",
-      notes = "Requires administration access", produces = "application/json",
+  @PutMapping("/private/customers/{username}")
+  @ApiOperation(
+      httpMethod = "PUT",
+      value = "Updates a customer",
+      notes = "Requires administration access",
+      produces = "application/json",
       response = PersistableCustomer.class)
-  public @ResponseBody PersistableCustomer update(@PathVariable String userName,
-      @Valid @RequestBody PersistableCustomer customer, HttpServletRequest request,
-      HttpServletResponse response) throws Exception {
+  public PersistableCustomer update(
+      @PathVariable String userName,
+      @Valid PersistableCustomer customer,
+      @RequestParam(name = "store", defaultValue = DEFAULT_STORE) String storeCode,
+      HttpServletResponse response) {
 
-    try {
-
-      MerchantStore merchantStore = storeFacade.getByCode(request);
-      // TODO customer.setUserName
-      // TODO more validation
-      customerFacade.update(customer, merchantStore);
-      return customer;
-
-    } catch (Exception e) {
-      LOGGER.error("Error while saving customer", e);
-      try {
-        response.sendError(503, "Error while saving customer " + e.getMessage());
-      } catch (Exception ignore) {
-      }
-
-      return null;
-    }
+    MerchantStore merchantStore = storeFacade.get(storeCode);
+    // TODO customer.setUserName
+    // TODO more validation
+    return customerFacade.update(customer, merchantStore);
   }
 
-  @ResponseStatus(HttpStatus.OK)
-  @RequestMapping(value = "/private/customers/{userName}", method = RequestMethod.DELETE)
-  @ApiOperation(httpMethod = "DELETE", value = "Deletes a customer",
-      notes = "Requires administration access", response = Void.class)
-  public void delete(@PathVariable String userName, HttpServletRequest request,
-      HttpServletResponse response) throws Exception {
-
-    try {
-
-      Customer customer = customerService.getByNick(userName);
-      // getById(id);
-      if (customer != null) {
-        customerService.delete(customer);
-      } else {
-        response.sendError(404, "No Customer found for ID : " + userName);
-      }
-    } catch (Exception e) {
-      LOGGER.error("Error while deleting customer", e);
-      try {
-        response.sendError(503, "Error while deleting customer " + e.getMessage());
-      } catch (Exception ignore) {
-      }
-    }
+  @DeleteMapping("/private/customers/{userName}")
+  @ApiOperation(
+      httpMethod = "DELETE",
+      value = "Deletes a customer",
+      notes = "Requires administration access",
+      response = Void.class)
+  public void delete(@PathVariable String userName) {
+    customerFacade.deleteByNick(userName);
   }
 
   /**
    * Get all customers
-   * 
+   *
    * @param start
    * @param count
    * @param request
@@ -150,125 +112,40 @@ public class CustomerApi {
    * @return
    * @throws Exception
    */
-  @RequestMapping(value = "/private/customers", method = RequestMethod.GET)
-  @ResponseStatus(HttpStatus.OK)
-  @ResponseBody
+  @GetMapping("/private/customers")
   public ReadableCustomerList getFilteredCustomers(
       @RequestParam(value = "start", required = false) Integer start,
-      @RequestParam(value = "count", required = false) Integer count, HttpServletRequest request,
-      HttpServletResponse response) throws Exception {
+      @RequestParam(value = "count", required = false) Integer count,
+      @RequestParam(name = "store", defaultValue = DEFAULT_STORE) String storeCode,
+      HttpServletRequest request) {
 
-    try {
-
-      MerchantStore merchantStore = storeFacade.getByCode(request);
-      Language language = languageUtils.getRESTLanguage(request, merchantStore);
-
-      CustomerCriteria customerCriteria = new CustomerCriteria();
-      if (start != null) {
-        customerCriteria.setStartIndex(start.intValue());
-      }
-
-      if (count != null) {
-        customerCriteria.setMaxCount(count.intValue());
-      }
-
-      CustomerList customerList = customerService.listByStore(merchantStore, customerCriteria);
-      List<ReadableCustomer> readableCustomers = new ArrayList<ReadableCustomer>();
-
-      ReadableCustomerPopulator populator = new ReadableCustomerPopulator();
-
-      if (CollectionUtils.isNotEmpty(customerList.getCustomers())) {
-        for (Customer c : customerList.getCustomers()) {
-          ReadableCustomer readable = new ReadableCustomer();
-          populator.populate(c, readable, merchantStore, language);
-          readableCustomers.add(readable);
-        }
-      }
-
-      ReadableCustomerList readableCustomerList = new ReadableCustomerList();
-      readableCustomerList.setCustomers(readableCustomers);
-      readableCustomerList.setTotalCount(customerList.getTotalCount());
-
-      return readableCustomerList;
-
-    } catch (Exception e) {
-      LOGGER.error("Error while getting all customers", e);
-      try {
-        response.sendError(503, "Error while getting all customers " + e.getMessage());
-      } catch (Exception ignore) {
-      }
-    }
-
-    return null;
+    MerchantStore merchantStore = storeFacade.get(storeCode);
+    Language language = languageUtils.getRESTLanguage(request, merchantStore);
+    return customerFacade.listByStore(merchantStore, language, start, count);
   }
 
-  @RequestMapping(value = "/private/customers/{userName}", method = RequestMethod.GET)
-  @ResponseStatus(HttpStatus.OK)
-  @ResponseBody
-  public ReadableCustomer get(@PathVariable String userName, HttpServletRequest request,
-      HttpServletResponse response) throws Exception {
+  @GetMapping("/private/customers/{userName}")
+  public ReadableCustomer get(
+      @PathVariable String userName,
+      @RequestParam(name = "store", defaultValue = DEFAULT_STORE) String storeCode,
+      HttpServletRequest request) {
 
-    try {
-
-      MerchantStore merchantStore = storeFacade.getByCode(request);
-      Language language = languageUtils.getRESTLanguage(request, merchantStore);
-
-      ReadableCustomer customer = customerFacade.getByUserName(userName, merchantStore, language);
-      if (customer == null) {
-        response.sendError(404, "No Customer found for ID : " + userName);
-      }
-
-      return customer;
-    } catch (Exception e) {
-      LOGGER.error("Error while getting customer", e);
-      try {
-        response.sendError(503, "Error while getting customer " + e.getMessage());
-      } catch (Exception ignore) {
-      }
-    }
-
-    return null;
-
+    MerchantStore merchantStore = storeFacade.get(storeCode);
+    Language language = languageUtils.getRESTLanguage(request, merchantStore);
+    return customerFacade.getByUserName(userName, merchantStore, language);
   }
 
-  @RequestMapping(value = "/auth/customers/profile", method = RequestMethod.GET)
-  @ResponseStatus(HttpStatus.OK)
-  @ResponseBody
-  public ReadableCustomer get(HttpServletRequest request, HttpServletResponse response)
-      throws Exception {
+  @GetMapping("/auth/customers/profile")
+  public ReadableCustomer get(
+      HttpServletRequest request,
+      @RequestParam(name = "store", defaultValue = DEFAULT_STORE) String storeCode) {
 
-    try {
+    MerchantStore merchantStore = storeFacade.get(storeCode);
+    Language language = languageUtils.getRESTLanguage(request, merchantStore);
 
-      MerchantStore merchantStore = storeFacade.getByCode(request);
-      Language language = languageUtils.getRESTLanguage(request, merchantStore);
+    Principal principal = request.getUserPrincipal();
+    String userName = principal.getName();
 
-      Principal principal = request.getUserPrincipal();
-      String userName = principal.getName();
-
-      Customer c = customerService.getByNick(userName);
-
-      if (c == null) {
-        response.sendError(401, "Error while getting customer, customer not authorized");
-        return null;
-      }
-
-      ReadableCustomer customer =
-          customerFacade.getCustomerById(c.getId(), merchantStore, language);
-      if (customer == null) {
-        response.sendError(404, "No Customer found for ID : " + c.getId());
-      }
-
-      return customer;
-    } catch (Exception e) {
-      LOGGER.error("Error while getting customer", e);
-      try {
-        response.sendError(503, "Error while getting customer " + e.getMessage());
-      } catch (Exception ignore) {
-      }
-    }
-
-    return null;
-
+    return customerFacade.getCustomerByUserName(userName, merchantStore, language);
   }
-
 }
